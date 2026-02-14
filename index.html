@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PoolFlow - Laguna Pools Service App</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&amp;family=Sora:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: linear-gradient(135deg, #0A4D68 0%, #00B4D8 100%); min-height: 100vh; color: #1E293B; }
+    #root { max-width: 1400px; margin: 0 auto; padding: 20px; }
+    .header { background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); border-radius: 20px; padding: 30px; margin-bottom: 30px; box-shadow: 0 25px 50px rgba(10,77,104,0.15); text-align: center; }
+    .header h1 { font-family: 'Sora', sans-serif; font-size: clamp(2rem, 5vw, 4rem); background: linear-gradient(135deg, #00B4D8, #10B981); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px; }
+    .tabs { display: flex; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px); border-radius: 15px; padding: 5px; margin-bottom: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow-x: auto; }
+    .tab { flex: 1; padding: 15px 20px; background: none; border: none; font-size: 1.1rem; font-weight: 500; color: #64748B; cursor: pointer; border-radius: 12px; transition: all 0.3s ease; white-space: nowrap; }
+    .tab.active { background: #00B4D8; color: white; box-shadow: 0 5px 15px rgba(0,180,216,0.4); transform: translateY(-2px); }
+    .tab:hover { background: rgba(0,180,216,0.1); color: #00B4D8; }
+    .section { background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); border-radius: 20px; padding: 30px; box-shadow: 0 20px 40px rgba(10,77,104,0.1); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px; }
+    .card { background: white; border-radius: 16px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); border: 1px solid rgba(0,180,216,0.1); transition: all 0.3s ease; }
+    .card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.12); }
+    .card h3 { font-family: 'Sora', sans-serif; font-size: 1.3rem; margin-bottom: 15px; color: #0A4D68; }
+    .phase-display { font-size: 3rem; font-weight: 700; color: #00B4D8; margin: 20px 0; }
+    .btn { background: linear-gradient(135deg, #00B4D8, #48CAE4); color: white; border: none; padding: 12px 24px; border-radius: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s; font-size: 1rem; box-shadow: 0 5px 15px rgba(0,180,216,0.3); }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,180,216,0.4); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .progress { height: 8px; background: #E2E8F0; border-radius: 4px; overflow: hidden; margin: 15px 0; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, #10B981, #F59E0B); border-radius: 4px; transition: width 0.5s ease; }
+    .badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
+    .badge.green { background: #D1FAE5; color: #065F46; }
+    .badge.amber { background: #FEF3C7; color: #92400E; }
+    .badge.red { background: #FEE2E2; color: #991B1B; }
+    @media (max-width: 768px) { .tabs { flex-direction: column; } .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // Static data with pre-generated IDs - NO random genId calls
+    const PROJECTS_INIT = [
+      { id: 'id1', name: 'Laguna Residence Pool Resurface', customer: 'John & Mary Doe', phase: 1, maxPhases: 5, progress: 20 },
+      { id: 'id2', name: 'Ocean View Custom Build', customer: 'Jane Smith', phase: 2, maxPhases: 6, progress: 45 },
+      { id: 'id3', name: 'Beach House Pool Refurb', customer: 'Mike Johnson', phase: 3, maxPhases: 5, progress: 70 },
+      { id: 'id4', name: 'Villa Pool Service', customer: 'Sarah Lee', phase: 1, maxPhases: 4, progress: 10 }
+    ];
+
+    const SCHEDULE_INIT = [
+      { id: 'sid1', projectId: 'id1', date: '2026-02-15', task: 'Site Prep & Demolition', crew: 'Team A' },
+      { id: 'sid2', projectId: 'id2', date: '2026-02-16', task: 'Plumbing Install', crew: 'Team B' },
+      { id: 'sid3', projectId: 'id3', date: '2026-02-17', task: 'Tile Setting', crew: 'Team A' }
+    ];
+
+    const MSG_INIT = [
+      { id: 'mid1', projectId: 'id1', from: 'John Doe', text: 'Approved the resurfacing design! Start ASAP.', timestamp: '2026-02-14 10:00' },
+      { id: 'mid2', projectId: 'id2', from: 'Jane Smith', text: 'Need update on plumbing permits.', timestamp: '2026-02-14 12:30' }
+    ];
+
+    const INVOICES_INIT = [
+      { id: 'iid1', projectId: 'id1', amount: '$5,200', status: 'paid', due: '2026-02-10' },
+      { id: 'iid2', projectId: 'id2', amount: '$12,500', status: 'pending', due: '2026-02-20' },
+      { id: 'iid3', projectId: 'id3', amount: '$8,900', status: 'paid', due: '2026-02-12' }
+    ];
+
+    const PHASES = ['Planning', 'Demolition/Site Prep', 'Plumbing', 'Structure Build', 'Tile/Finish', 'Cleanup/Handover'];
+
+    const PhaseTracker = ({ phase, maxPhases }) => {
+      return (
+        <div style={{ display: 'flex', gap: 8, margin: 20, justifyContent: 'center', flexWrap: 'wrap' }}>
+          {Array.from({ length: maxPhases }, (_, i) => (
+            <div key={i} style={{
+              width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: i < phase ? '#10B981' : i === phase ? '#F59E0B' : '#E2E8F0',
+              color: i < phase ? 'white' : 'current',
+              fontWeight: 'bold', fontSize: '0.8rem', boxShadow: i === phase ? '0 0 0 3px #F59E0B' : 'none'
+            }}>
+              {i + 1}
+            </div>
+          ))}
+        </div>
+      );
+    };
+
+    const ProgressBar = ({ progress }) => (
+      <div className="progress">
+        <div className="progress-fill" style={{ width: `${progress}%` }} />
+      </div>
+    );
+
+    const Badge = ({ children, variant = 'green' }) => (
+      <span className={`badge ${variant}`}>{children}</span>
+    );
+
+    const Card = ({ children, title }) => (
+      <div className="card">
+        {title && <h3>{title}</h3>}
+        {children}
+      </div>
+    );
+
+    const Btn = ({ onClick, disabled, children }) => (
+      <button className="btn" onClick={onClick} disabled={disabled}>
+        {children}
+      </button>
+    );
+
+    const PoolFlowApp = () => {
+      const [currentTab, setCurrentTab] = useState('projects');
+      const [projects, setProjects] = useState(PROJECTS_INIT);
+      const [schedule, setSchedule] = useState(SCHEDULE_INIT);
+      const [messages, setMessages] = useState(MSG_INIT);
+      const [invoices, setInvoices] = useState(INVOICES_INIT);
+      const [selectedProject, setSelectedProject] = useState(null);
+
+      const advancePhase = (projectId) => {
+        setProjects(projects.map(p => 
+          p.id === projectId 
+            ? { ...p, phase: Math.min(p.phase + 1, p.maxPhases), progress: Math.min(p.progress + 20, 100) }
+            : p
+        ));
+      };
+
+      const projectCards = projects.map(project => (
+        <Card key={project.id} title={project.name}>
+          <p><strong>Customer:</strong> {project.customer}</p>
+          <PhaseTracker phase={project.phase} maxPhases={project.maxPhases} />
+          <ProgressBar progress={project.progress} />
+          <div style={{ marginTop: 20 }}>
+            <Btn 
+              onClick={() => advancePhase(project.id)} 
+              disabled={project.phase >= project.maxPhases}
+            >
+              Advance to Phase {project.phase + 1}: {PHASES[project.phase]}
+            </Btn>
+          </div>
+        </Card>
+      ));
+
+      const scheduleCards = schedule.map(item => (
+        <Card key={item.id}>
+          <h3>{item.task}</h3>
+          <p><strong>Date:</strong> {item.date}</p>
+          <p><strong>Crew:</strong> {item.crew}</p>
+          <Badge>Scheduled</Badge>
+        </Card>
+      ));
+
+      const msgCards = messages.map(msg => (
+        <Card key={msg.id}>
+          <p><strong>From:</strong> {msg.from}</p>
+          <p>{msg.text}</p>
+          <small>{msg.timestamp}</small>
+        </Card>
+      ));
+
+      const invoiceCards = invoices.map(inv => (
+        <Card key={inv.id}>
+          <h3>{inv.amount}</h3>
+          <p><strong>Status:</strong> <Badge variant={inv.status === 'paid' ? 'green' : inv.status === 'pending' ? 'amber' : 'red'}>{inv.status.toUpperCase()}</Badge></p>
+          <p><strong>Due:</strong> {inv.due}</p>
+        </Card>
+      ));
+
+      return (
+        <div>
+          <div className="header">
+            <h1>🏊 PoolFlow</h1>
+            <p>Laguna Pools Service Management</p>
+          </div>
+          <div className="tabs">
+            <button className={currentTab === 'projects' ? 'tab active' : 'tab'} onClick={() => setCurrentTab('projects')}>
+              Projects ({projects.length})
+            </button>
+            <button className={currentTab === 'schedule' ? 'tab active' : 'tab'} onClick={() => setCurrentTab('schedule')}>
+              Schedule ({schedule.length})
+            </button>
+            <button className={currentTab === 'messages' ? 'tab active' : 'tab'} onClick={() => setCurrentTab('messages')}>
+              Messages ({messages.length})
+            </button>
+            <button className={currentTab === 'invoices' ? 'tab active' : 'tab'} onClick={() => setCurrentTab('invoices')}>
+              Invoices ({invoices.length})
+            </button>
+          </div>
+          <div className="section">
+            {currentTab === 'projects' && <div className="grid">{projectCards}</div>}
+            {currentTab === 'schedule' && <div className="grid">{scheduleCards}</div>}
+            {currentTab === 'messages' && <div className="grid">{msgCards}</div>}
+            {currentTab === 'invoices' && <div className="grid">{invoiceCards}</div>}
+          </div>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(PoolFlowApp));
+  </script>
+</body>
+</html>
